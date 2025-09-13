@@ -22,7 +22,7 @@ export class FilterPipe implements PipeTransform {
   selector: 'app-home',
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
-  imports: [CommonModule, RouterLink,     FormsModule,
+  imports: [CommonModule, RouterLink, FormsModule
     
 ],
   standalone: true

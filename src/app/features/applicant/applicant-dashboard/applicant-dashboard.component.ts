@@ -1,10 +1,12 @@
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { PersonalInfoService, PersonalInfo } from '../../../core/services/personal-info.service';
 import { DocumentService, Document, DocumentType } from '../../../core/services/document.service';
 import { AcademicHistoryService, AcademicHistory } from '../../../core/services/academic-history.service';
 import { ContactInfoService, ContactInfo } from '../../../core/services/contact-info.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-applicant-dashboard',
@@ -90,10 +92,19 @@ export class ApplicantDashboardComponent implements OnInit {
     private personalInfoService: PersonalInfoService,
     private documentService: DocumentService,
     private academicHistoryService: AcademicHistoryService,
-    private contactInfoService: ContactInfoService
+    private contactInfoService: ContactInfoService,
+    private authService: AuthService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
+    // Check authentication first
+    if (!this.authService.getUserData()) {
+      console.log('User not authenticated, redirecting to login');
+      this.router.navigate(['/auth/login']);
+      return;
+    }
+    
     this.initPersonalInfoForm();
     this.initAcademicHistoryForm();
     this.initContactInfoForm();
@@ -103,11 +114,12 @@ export class ApplicantDashboardComponent implements OnInit {
 
   initPersonalInfoForm(): void {
     this.personalInfoForm = this.formBuilder.group({
-      lastName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
-      firstNames: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
+      lastName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50), Validators.pattern(/^[\p{L} .'-]+$/u)]],
+      firstNames: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100), Validators.pattern(/^[\p{L} .'-]+$/u)]],
       gender: ['', [Validators.required]],
       dateOfBirth: ['', [Validators.required]],
-      nationality: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
+      nationality: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50), Validators.pattern(/^[\p{L} .'-]+$/u)]],
+      idNumber: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(20)]],
       idDocumentType: ['', [Validators.required]]
     });
   }
@@ -124,6 +136,7 @@ export class ApplicantDashboardComponent implements OnInit {
           gender: data.gender,
           dateOfBirth: data.dateOfBirth,
           nationality: data.nationality,
+          idNumber: data.idNumber,
           idDocumentType: data.idDocumentType
         });
         this.steps[0].completed = true;
@@ -131,9 +144,14 @@ export class ApplicantDashboardComponent implements OnInit {
         this.isLoadingPersonalInfo = false;
       },
       error: (error) => {
-        // 404 is expected if the user hasn't saved personal info yet
-        if (error.message !== 'No personal information found') {
-          this.personalInfoErrorMessage = error.message;
+        // Handle different error types
+        if (error.status === 404) {
+          // 404 is expected if the user hasn't saved personal info yet
+          console.log('No personal information found - this is normal for new users');
+        } else if (error.status === 0) {
+          this.personalInfoErrorMessage = 'Unable to connect to server. Please check your connection.';
+        } else {
+          this.personalInfoErrorMessage = error.message || 'An error occurred while loading personal information.';
         }
         this.isLoadingPersonalInfo = false;
       }
@@ -157,12 +175,16 @@ export class ApplicantDashboardComponent implements OnInit {
         this.personalInfoSuccessMessage = 'Personal information saved successfully!';
         this.steps[0].completed = true;
         this.updateStepsStatus();
+        this.isSavingPersonalInfo = false;
         setTimeout(() => this.nextStep(), 1000);
       },
       error: (error) => {
-        this.personalInfoErrorMessage = error.message;
-      },
-      complete: () => {
+        console.error('Save personal info error:', error);
+        if (error.status === 401 || error.status === 0) {
+          this.authService.logout();
+          return;
+        }
+        this.personalInfoErrorMessage = error.message || 'Failed to save personal information';
         this.isSavingPersonalInfo = false;
       }
     });
@@ -191,6 +213,11 @@ export class ApplicantDashboardComponent implements OnInit {
     if (control.errors?.['email']) {
       return 'Please enter a valid email address';
     }
+    if (control.errors?.['pattern']) {
+      if (controlName === 'firstNames' || controlName === 'lastName' || controlName === 'nationality') {
+        return 'Only letters, spaces, dots, apostrophes, and hyphens are allowed';
+      }
+    }
     
     return 'Invalid input';
   }
@@ -212,7 +239,7 @@ export class ApplicantDashboardComponent implements OnInit {
   updateStepsStatus(): void {
     this.steps.forEach(step => {
       step.active = step.id === this.currentStep;
-      step.completed = step.id < this.currentStep;
+      // Don't override completed status - it should only be set when data is actually saved
     });
   }
 
@@ -574,6 +601,7 @@ export class ApplicantDashboardComponent implements OnInit {
   // Contact Information Methods
   initContactInfoForm(): void {
     this.contactInfoForm = this.formBuilder.group({
+      email: ['', [Validators.email]],
       phoneNumber: ['', [Validators.required]],
       address: this.formBuilder.group({
         street: ['', [Validators.required]],
@@ -612,7 +640,18 @@ export class ApplicantDashboardComponent implements OnInit {
   }
 
   saveContactInfo(): void {
+    console.log('saveContactInfo() called');
+    console.log('Form valid:', this.contactInfoForm.valid);
+    console.log('Form value:', this.contactInfoForm.value);
+    
     if (this.contactInfoForm.invalid) {
+      console.log('Contact form is invalid:', this.contactInfoForm.errors);
+      Object.keys(this.contactInfoForm.controls).forEach(key => {
+        const control = this.contactInfoForm.get(key);
+        if (control && control.invalid) {
+          console.log(`Invalid field ${key}:`, control.errors);
+        }
+      });
       this.contactInfoForm.markAllAsTouched();
       return;
     }
@@ -622,19 +661,36 @@ export class ApplicantDashboardComponent implements OnInit {
     this.contactInfoSuccessMessage = '';
 
     const contactInfo: ContactInfo = this.contactInfoForm.value;
+    console.log('Saving contact info:', contactInfo);
 
     this.contactInfoService.saveContactInfo(contactInfo).subscribe({
       next: () => {
+        console.log('Contact info saved successfully');
         this.contactInfoSuccessMessage = 'Contact information saved successfully!';
         this.steps[3].completed = true;
         this.updateStepsStatus();
+        this.isSavingContactInfo = false;
       },
       error: (error) => {
+        console.error('Contact info save error:', error);
         this.contactInfoErrorMessage = error.message;
-      },
-      complete: () => {
         this.isSavingContactInfo = false;
       }
     });
+  }
+
+  submitApplication(): void {
+    // Check if all steps are completed
+    const allStepsCompleted = this.steps.every(step => step.completed);
+    
+    if (!allStepsCompleted) {
+      const incompleteSteps = this.steps.filter(step => !step.completed).map(step => step.name);
+      alert(`Please complete all steps before submitting your application.\n\nIncomplete steps: ${incompleteSteps.join(', ')}`);
+      return;
+    }
+
+    if (confirm('Are you sure you want to submit your application? You will not be able to make changes after submission.')) {
+      alert('Application submitted successfully! You will receive a confirmation email shortly.');
+    }
   }
 }

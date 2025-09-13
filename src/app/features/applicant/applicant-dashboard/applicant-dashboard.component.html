@@ -88,6 +88,22 @@
         <span>{{ personalInfoErrorMessage }}</span>
       </div>
       
+      <!-- Requirements notification -->
+      <div *ngIf="!personalInfoSuccessMessage" class="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 rounded-lg mb-6 shadow-sm animate-fade-in flex items-start">
+        <svg class="w-6 h-6 mr-3 text-blue-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <div>
+          <p class="font-medium mb-2">Please ensure all requirements are met:</p>
+          <ul class="text-sm space-y-1">
+            <li>• First name: minimum 2 characters, maximum 100 characters</li>
+            <li>• Last name: minimum 2 characters, maximum 50 characters</li>
+            <li>• All required fields must be completed</li>
+            <li>• Valid date of birth and nationality required</li>
+          </ul>
+        </div>
+      </div>
+      
       <form [formGroup]="personalInfoForm" *ngIf="!isLoadingPersonalInfo" (ngSubmit)="savePersonalInfo()" class="space-y-8">
         <div class="p-6 bg-gray-50 rounded-xl border border-gray-100 shadow-sm">
           <h3 class="text-lg font-semibold mb-4 text-gray-700">Basic Details</h3>
@@ -227,6 +243,32 @@
                 ID number is required
               </div>
             </div>
+            
+            <div class="space-y-2 group">
+              <label for="idDocumentType" class="block text-sm font-medium text-gray-700 group-focus-within:text-primary-600 transition-colors duration-200">ID Document Type*</label>
+              <div class="relative">
+                <select 
+                  id="idDocumentType" 
+                  formControlName="idDocumentType"
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 appearance-none"
+                  [ngClass]="{'border-red-300 ring-red-100': personalInfoForm.get('idDocumentType')?.invalid && personalInfoForm.get('idDocumentType')?.touched}"
+                >
+                  <option value="">Select document type</option>
+                  <option value="NATIONAL_ID_CARD">National ID Card</option>
+                  <option value="PASSPORT">Passport</option>
+                  <option value="DRIVERS_LICENSE">Driver's License</option>
+                  <option value="OTHER">Other</option>
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400 group-focus-within:text-primary-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+              <div *ngIf="personalInfoForm.get('idDocumentType')?.invalid && personalInfoForm.get('idDocumentType')?.touched" class="text-red-600 text-sm mt-1 animate-fade-in">
+                Document type is required
+              </div>
+            </div>
           </div>
         </div>
         
@@ -306,7 +348,8 @@
             <div class="relative">
               <select 
                 id="documentType" 
-                [(ngModel)]="selectedDocumentType"
+                (change)="selectedDocumentType = $any($event.target).value"
+                [value]="selectedDocumentType"
                 class="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
               >
                 <option value="">Select Document Type</option>
@@ -650,7 +693,10 @@
         <svg class="w-5 h-5 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
         </svg>
-        {{ contactInfoSuccessMessage }}
+        <svg class="w-6 h-6 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>{{ contactInfoSuccessMessage }}</span>
       </div>
       
       <!-- Error message -->
@@ -658,21 +704,37 @@
         {{ contactInfoErrorMessage }}
       </div>
       
-      <form [formGroup]="contactInfoForm" *ngIf="!isLoadingContactInfo" class="space-y-8">
-        <!-- Phone Number -->
+      <form [formGroup]="contactInfoForm" *ngIf="!isLoadingContactInfo" (ngSubmit)="saveContactInfo()" class="space-y-8">
+        <!-- Contact Details -->
         <div class="border border-gray-200 rounded-md p-6">
-          <h3 class="font-medium mb-4">Phone Number</h3>
-          <div class="space-y-2">
-            <label for="phoneNumber" class="block text-sm font-medium text-gray-700">Phone Number*</label>
-            <input 
-              type="tel" 
-              id="phoneNumber" 
-              formControlName="phoneNumber"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              [ngClass]="{'border-red-300': contactInfoForm.get('phoneNumber')?.invalid && contactInfoForm.get('phoneNumber')?.touched}"
-            >
-            <div *ngIf="contactInfoForm.get('phoneNumber')?.invalid && contactInfoForm.get('phoneNumber')?.touched" class="text-red-600 text-sm mt-1">
-              Phone number is required
+          <h3 class="font-medium mb-4">Contact Details</h3>
+          <div class="space-y-4">
+            <div class="space-y-2">
+              <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
+              <input 
+                type="email" 
+                id="email" 
+                formControlName="email"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                [ngClass]="{'border-red-300': contactInfoForm.get('email')?.invalid && contactInfoForm.get('email')?.touched}"
+              >
+              <div *ngIf="contactInfoForm.get('email')?.invalid && contactInfoForm.get('email')?.touched" class="text-red-600 text-sm mt-1">
+                Please enter a valid email address
+              </div>
+            </div>
+            
+            <div class="space-y-2">
+              <label for="phoneNumber" class="block text-sm font-medium text-gray-700">Phone Number*</label>
+              <input 
+                type="tel" 
+                id="phoneNumber" 
+                formControlName="phoneNumber"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                [ngClass]="{'border-red-300': contactInfoForm.get('phoneNumber')?.invalid && contactInfoForm.get('phoneNumber')?.touched}"
+              >
+              <div *ngIf="contactInfoForm.get('phoneNumber')?.invalid && contactInfoForm.get('phoneNumber')?.touched" class="text-red-600 text-sm mt-1">
+                Phone number is required
+              </div>
             </div>
           </div>
         </div>
@@ -802,8 +864,7 @@
         <!-- Save Button -->
         <div class="flex justify-center">
           <button 
-            type="button" 
-            (click)="saveContactInfo()" 
+            type="submit" 
             class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-md flex items-center"
             [disabled]="contactInfoForm.invalid || isSavingContactInfo"
             [ngClass]="{'opacity-50 cursor-not-allowed': contactInfoForm.invalid || isSavingContactInfo}"
@@ -846,6 +907,7 @@
     
     <button 
       *ngIf="currentStep === totalSteps"
+      (click)="submitApplication()"
       class="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white rounded-lg transition-all duration-300 flex items-center shadow-md hover:shadow-lg transform hover:-translate-y-1 animate-pulse-slow">
       <span class="font-medium">Submit Application</span>
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

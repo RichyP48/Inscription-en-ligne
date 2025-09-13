@@ -26,9 +26,12 @@ export const authInterceptor: HttpInterceptorFn = (
 
   return next(request).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401) {
-        // Handle 401 Unauthorized - token expired or invalid
+      // Handle authentication errors
+      if (error.status === 401 || 
+          (error.status === 0 && error.url?.includes('oauth2/authorization'))) {
+        // Token expired or invalid - clear auth data and redirect to login
         localStorage.removeItem('accessToken');
+        localStorage.removeItem('userData');
         router.navigate(['/auth/login']);
       }
       return throwError(() => error);

@@ -61,9 +61,21 @@ export class UserApplicationComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.error = 'Failed to load application details. Please try again.';
-        this.loading = false;
         console.error('Error loading application details:', err);
+        
+        // Handle authentication errors (session expired)
+        if (err.status === 0 || err.url?.includes('oauth2/authorization')) {
+          this.error = 'Your session has expired. Please log in again.';
+          setTimeout(() => {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('userData');
+            this.router.navigate(['/auth/login']);
+          }, 2000);
+        } else {
+          this.error = 'Failed to load application details. Please try again.';
+        }
+        
+        this.loading = false;
       }
     });
   }
@@ -124,9 +136,21 @@ export class UserApplicationComponent implements OnInit {
           }, 3000);
         },
         error: (err) => {
-          this.errorMessage = `Failed to ${this.modalAction === 'APPROVED' ? 'validate' : 'reject'} document. Please try again.`;
-          this.showErrorNotification = true;
           console.error('Error updating document status:', err);
+          
+          // Handle authentication errors (session expired)
+          if (err.status === 0 || err.url?.includes('oauth2/authorization')) {
+            this.errorMessage = 'Your session has expired. Please log in again.';
+            setTimeout(() => {
+              localStorage.removeItem('accessToken');
+              localStorage.removeItem('userData');
+              this.router.navigate(['/auth/login']);
+            }, 2000);
+          } else {
+            this.errorMessage = `Failed to ${this.modalAction === 'APPROVED' ? 'validate' : 'reject'} document. Please try again.`;
+          }
+          
+          this.showErrorNotification = true;
           
           // Clear error message after 5 seconds
           setTimeout(() => {
@@ -158,9 +182,21 @@ export class UserApplicationComponent implements OnInit {
           }, 3000);
         },
         error: (err) => {
-          this.errorMessage = 'Failed to update application status. Please try again.';
-          this.showErrorNotification = true;
           console.error('Error updating application status:', err);
+          
+          // Handle authentication errors (session expired)
+          if (err.status === 0 || err.url?.includes('oauth2/authorization')) {
+            this.errorMessage = 'Your session has expired. Please log in again.';
+            setTimeout(() => {
+              localStorage.removeItem('accessToken');
+              localStorage.removeItem('userData');
+              this.router.navigate(['/auth/login']);
+            }, 2000);
+          } else {
+            this.errorMessage = 'Failed to update application status. Please try again.';
+          }
+          
+          this.showErrorNotification = true;
           
           // Clear error message after 5 seconds
           setTimeout(() => {

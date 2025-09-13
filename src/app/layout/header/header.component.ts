@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-header',
@@ -12,14 +13,16 @@ import { CommonModule } from '@angular/common';
 export class HeaderComponent {
   isMenuOpen = false;
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, public authService: AuthService) {}
+
+
 
   toggleMenu(): void {
     this.isMenuOpen = !this.isMenuOpen;
   }
 
   logout(): void {
-    localStorage.removeItem('accessToken');
+    this.authService.logout();
     this.router.navigate(['/auth/login']);
   }
 }

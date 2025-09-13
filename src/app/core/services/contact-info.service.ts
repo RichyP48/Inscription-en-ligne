@@ -20,6 +20,7 @@ export interface EmergencyContact {
 }
 
 export interface ContactInfo {
+  email?: string;
   emailVerified?: boolean;
   phoneNumber: string;
   address: Address;
@@ -50,9 +51,11 @@ export class ContactInfoService {
   }
 
   saveContactInfo(contactInfo: ContactInfo): Observable<ContactInfo> {
+    console.log('ContactInfoService: Making PUT request to', this.API_URL);
     return this.http.put<ContactInfo>(this.API_URL, contactInfo)
       .pipe(
         catchError(error => {
+          console.error('ContactInfoService: Error occurred', error);
           let errorMessage = 'Failed to save contact information';
           
           if (error.status === 400) {
@@ -64,7 +67,9 @@ export class ContactInfoService {
               errorMessage = Object.values(error.error).join(', ');
             }
           } else if (error.status === 404) {
-            errorMessage = 'User not found';
+            errorMessage = 'Contact info endpoint not found - check if backend controller exists';
+          } else if (error.status === 0) {
+            errorMessage = 'Unable to connect to server. Please check your connection.';
           }
           
           return throwError(() => new Error(errorMessage));

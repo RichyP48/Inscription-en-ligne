@@ -9,6 +9,7 @@ export interface PersonalInfo {
   gender: 'MALE' | 'FEMALE' | 'OTHER';
   dateOfBirth: string; // ISO format: YYYY-MM-DD
   nationality: string;
+  idNumber: string;
   idDocumentType: 'NATIONAL_ID_CARD' | 'PASSPORT' | 'DRIVERS_LICENSE' | 'OTHER';
 }
 
@@ -41,17 +42,25 @@ export class PersonalInfoService {
     return this.http.put<PersonalInfo>(this.API_URL, personalInfo)
       .pipe(
         catchError(error => {
+          console.error('Personal info save error:', error);
           let errorMessage = 'Failed to save personal information';
           
           if (error.status === 400) {
             if (error.error === 'Applicant must be at least 16 years old.') {
               errorMessage = 'Applicant must be at least 16 years old';
+            } else if (error.error && typeof error.error === 'string') {
+              errorMessage = error.error;
             } else if (error.error && typeof error.error === 'object') {
-              // Handle validation errors
               errorMessage = Object.values(error.error).join(', ');
             }
           } else if (error.status === 403) {
             errorMessage = 'You do not have permission to access this resource';
+          } else if (error.status === 401) {
+            errorMessage = 'Please log in to continue';
+          } else if (error.status === 0) {
+            errorMessage = 'Unable to connect to server. Please check your connection.';
+          } else if (error.error && typeof error.error === 'string') {
+            errorMessage = error.error;
           }
           
           return throwError(() => new Error(errorMessage));
